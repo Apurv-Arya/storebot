@@ -683,41 +683,53 @@ async def show_all_ids(message: types.Message):
     if not is_admin(message.from_user.id):
         return await message.answer("🔒 Admin only.")
 
-    msg = "<b>📦 StoreBot ID Summary</b>\n\n"
+    try:
+        msg = "<b>📦 StoreBot ID Summary</b>\n\n"
 
-    async with aiosqlite.connect(DB_PATH) as db:
-        # Categories
-        msg += "📁 <b>Categories:</b>\n"
-        cur = await db.execute("SELECT category_id, name FROM categories")
-        cats = await cur.fetchall()
-        if cats:
-            for cid, name in cats:
-                msg += f"• ID: <code>{cid}</code> → {name}\n"
-        else:
-            msg += "❌ No categories found.\n"
+        async with aiosqlite.connect(DB_PATH) as db:
 
-        msg += "\n🛍️ <b>Items:</b>\n"
-        cur = await db.execute("SELECT item_id, title, price FROM items")
-        items = await cur.fetchall()
-        if items:
-            for iid, title, price in items:
-                msg += f"• ID: <code>{iid}</code> → {title} (${price:.2f})\n"
-        else:
-            msg += "❌ No items found.\n"
+            # Categories
+            msg += "📁 <b>Categories:</b>\n"
+            cur = await db.execute("SELECT category_id, name FROM categories")
+            cats = await cur.fetchall()
+            if cats:
+                for cid, name in cats:
+                    msg += f"• ID: <code>{cid}</code> → {name}\n"
+            else:
+                msg += "❌ No categories found.\n"
 
-        msg += "\n📦 <b>Inventory (Top 10):</b>\n"
-        cur = await db.execute("""
-            SELECT inventory_id, item_id, sold
-            FROM inventory
-            ORDER BY inventory_id DESC
-            LIMIT 10
-        """)
-        inv = await cur.fetchall()
-        if inv:
-            for inv_id, item_id, sold in inv:
-                status = "✅ Sold" if sold else "🟢 Available"
-                msg += f"• ID: <code>{inv_id}</code> → Item {item_id} ({status})\n"
-        else:
-            msg += "❌ No inventory entries.\n"
+            # Items
+            msg += "\n🛍️ <b>Items:</b>\n"
+            cur = await db.execute("SELECT item_id, title, price FROM items")
+            items = await cur.fetchall()
+            if items:
+                for iid, title, price in items:
+                    msg += f"• ID: <code>{iid}</code> → {title} (${price:.2f})\n"
+            else:
+                msg += "❌ No items found.\n"
 
-    await message.answer(msg, parse_mode="HTML")
+            # Inventory
+            msg += "\n📦 <b>Inventory (Top 10):</b>\n"
+            cur = await db.execute("""
+                SELECT inventory_id, item_id, sold
+                FROM inventory
+                ORDER BY inventory_id DESC
+                LIMIT 10
+            """)
+            inv = await cur.fetchall()
+            if inv:
+                for inv_id, item_id, sold in inv:
+                    status = "✅ Sold" if sold else "🟢 Available"
+                    msg += f"• ID: <code>{inv_id}</code> → Item {item_id} ({status})\n"
+            else:
+                msg += "❌ No inventory entries.\n"
+
+        # Telegram max message length protection
+        if len(msg) > 4000:
+            msg = msg[:3990] + "\n\n⚠️ Output truncated due to message length."
+
+        await message.answer(msg, parse_mode="HTML")
+
+    except Exception as e:
+        await message.answer(f"❌ Error generating ID list:\n<code>{e}</code>", parse_mode="HTML")
+
