@@ -7,7 +7,7 @@ def main_menu_kb():
         [InlineKeyboardButton(text="💼 My Balance", callback_data="check_balance")]
     ])
 
-def topup_kb():
+def manual_methods_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🏦 BinancePay", callback_data="method_binance")],
         [InlineKeyboardButton(text="💸 PayPal", callback_data="method_paypal")],
