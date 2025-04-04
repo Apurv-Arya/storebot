@@ -1,7 +1,7 @@
 from aiogram import Router, types, F
 from database.db import DB_PATH
 from utils.config import ADMIN_IDS
-from keyboards.inline import inventory_remove_kb
+from keyboards.inline import inventory_remove_kb,bulk_remove_kb
 import aiosqlite
 
 router = Router()
@@ -337,8 +337,7 @@ async def bulk_remove_start(message: types.Message):
 
     text = "🗑️ <b>Select inventory to remove</b>:\n\n"
     for inv_id, content in items:
-        short = content[:60] + ("..." if len(content) > 60 else "")
-        text += f"• #{inv_id}: <code>{short}</code>\n"
+        msg += f"• <code>{content}</code>\n"
 
     inv_ids = [inv_id for inv_id, _ in items]
     await message.answer(text, reply_markup=bulk_remove_kb(item_id, inv_ids), parse_mode="HTML")
