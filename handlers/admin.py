@@ -49,3 +49,20 @@ async def upload_content(msg: types.Message):
         await db.execute("INSERT INTO inventory (item_id, content) VALUES (?, ?)", (item_id, content))
         await db.commit()
     await msg.answer("✅ Content uploaded.")
+
+@router.message(F.text.startswith("/setbalance"))
+async def set_user_balance(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only.")
+    try:
+        _, user_id, amount = message.text.split()
+        user_id = int(user_id)
+        amount = float(amount)
+    except:
+        return await message.answer("⚠️ Usage: /setbalance <user_id> <amount>")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE users SET balance = ? WHERE user_id = ?", (amount, user_id))
+        await db.commit()
+    await message.answer(f"✅ User {user_id} balance set to ${amount:.2f}")
+
