@@ -3,6 +3,43 @@ from aiogram.types import CallbackQuery
 from keyboards.inline import topup_kb
 from keyboards.inline import main_menu_kb
 from utils.config import ADMIN_IDS
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
+
+class PaymentStates(StatesGroup):
+    waiting_for_proof = State()
+
+@router.callback_query(F.data == "manual_topup")
+async def manual_topup(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(
+        "📩 Please send your payment proof (photo, screenshot, or text).\n\n"
+        "Once received, an admin will review it manually.",
+        reply_markup=topup_kb()
+    )
+    await state.set_state(PaymentStates.waiting_for_proof)
+
+@router.message(PaymentStates.waiting_for_proof)
+async def handle_proof(message: types.Message, state: FSMContext):
+    await state.clear()
+    forward_text = f"🧾 <b>New Payment Proof</b>\nFrom User: <code>{message.from_user.id}</code>\n"
+    sent = False
+
+    for admin in ADMIN_IDS:
+        try:
+            if message.photo:
+                await message.bot.send_photo(admin, message.photo[-1].file_id, caption=forward_text, parse_mode="HTML")
+            elif message.document:
+                await message.bot.send_document(admin, message.document.file_id, caption=forward_text, parse_mode="HTML")
+            else:
+                await message.bot.send_message(admin, forward_text + "\n" + message.text, parse_mode="HTML")
+            sent = True
+        except Exception as e:
+            print(f"Failed to send proof to admin {admin}: {e}")
+
+    if sent:
+        await message.answer("✅ Payment proof sent to admin. You'll be notified once your balance is updated.")
+    else:
+        await message.answer("❌ Failed to send proof to admins. Please try again or contact them directly.")
 
 router = Router()
 
