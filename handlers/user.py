@@ -109,8 +109,8 @@ async def buy_item(callback: CallbackQuery):
         cursor = await db.execute("SELECT stock FROM items WHERE item_id = ?", (item_id,))
         new_stock = (await cursor.fetchone())[0]
 
-         # Alert if low stock
-         if new_stock <= 2:
+        # Alert if low stock
+        if new_stock <= 2:
              alert_text = (
                  f"⚠️ <b>Low Stock Alert</b>\n\n"
                  f"📦 Item: <b>{title}</b>\n"
