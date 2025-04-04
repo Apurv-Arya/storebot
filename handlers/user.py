@@ -41,15 +41,29 @@ async def list_items(callback: CallbackQuery):
     offset = page * per_page
 
     async with aiosqlite.connect(DB_PATH) as db:
+        # ✅ Safely fetch category name
         cursor = await db.execute("SELECT name FROM categories WHERE category_id = ?", (cat_id,))
         cat = await cursor.fetchone()
-        cursor = await db.execute("SELECT item_id, title, price, stock FROM items WHERE category_id = ? AND stock > 0 LIMIT ? OFFSET ?",
-                                  (cat_id, per_page, offset))
+        category_name = cat[0] if cat else "Unknown"
+
+        # ✅ Fetch items for this category
+        cursor = await db.execute("""
+            SELECT item_id, title, price, stock
+            FROM items
+            WHERE category_id = ? AND stock > 0
+            LIMIT ? OFFSET ?
+        """, (cat_id, per_page, offset))
         items = await cursor.fetchall()
+
+        # ✅ Total count for pagination
         cursor = await db.execute("SELECT COUNT(*) FROM items WHERE category_id = ? AND stock > 0", (cat_id,))
         total = (await cursor.fetchone())[0]
 
-    kb = [[InlineKeyboardButton(f"{i[1]} - ${i[2]}", callback_data=f"buy_{i[0]}")] for i in items]
+    # Build inline keyboard
+    kb = [[
+        InlineKeyboardButton(f"{i[1]} - ${i[2]}", callback_data=f"buy_{i[0]}")
+    ] for i in items]
+
     nav = []
     if page > 0:
         nav.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"cat_{cat_id}_{page-1}"))
@@ -57,8 +71,13 @@ async def list_items(callback: CallbackQuery):
         nav.append(InlineKeyboardButton("➡️ Next", callback_data=f"cat_{cat_id}_{page+1}"))
     if nav:
         kb.append(nav)
-    kb.append([InlineKeyboardButton("⬅️ Categories", callback_data="browse_store")])
-    await callback.message.edit_text(f"📦 {cat[0]} Products (Page {page+1})", reply_markup=InlineKeyboardMarkup(inline_keyboard=kb))
+    kb.append([InlineKeyboardButton("⬅️ Back to Categories", callback_data="browse_store")])
+
+    await callback.message.edit_text(
+        f"📦 <b>{category_name}</b> (Page {page + 1})",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=kb),
+        parse_mode="HTML"
+    )
 
 @router.callback_query(F.data.startswith("buy_"))
 async def buy_item(callback: CallbackQuery):
