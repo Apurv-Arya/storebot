@@ -14,14 +14,14 @@ async def cmd_start(message: types.Message):
             await db.execute("INSERT INTO users (user_id, registered_at) VALUES (?, ?)", (
                 message.from_user.id, datetime.datetime.now().isoformat()))
             await db.commit()
-    await message.answer("👋 Welcome to StoreBot! Choose an option:", reply_markup=main_menu_kb())
+    await message.answer(text="👋 Welcome to StoreBot! Choose an option:", reply_markup=main_menu_kb())
 
 @router.callback_query(F.data == "check_balance")
 async def check_balance(callback: CallbackQuery):
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute("SELECT balance FROM users WHERE user_id = ?", (callback.from_user.id,))
         bal = (await cur.fetchone())[0]
-    await callback.message.edit_text(f"💼 Your balance: ${bal:.2f}", reply_markup=main_menu_kb())
+    await callback.message.edit_text(text=f"💼 Your balance: ${bal:.2f}", reply_markup=main_menu_kb())
 
 @router.callback_query(F.data == "browse_store")
 async def browse_store(callback: CallbackQuery):
@@ -30,7 +30,7 @@ async def browse_store(callback: CallbackQuery):
         cats = await cur.fetchall()
     if not cats:
         return await callback.message.edit_text("🚫 No categories available.")
-    await callback.message.edit_text("📂 Choose a category:", reply_markup=category_menu_kb(cats))
+    await callback.message.edit_text(text="📂 Choose a category:", reply_markup=category_menu_kb(cats))
 
 @router.callback_query(F.data.startswith("cat_"))
 async def list_items(callback: CallbackQuery):
