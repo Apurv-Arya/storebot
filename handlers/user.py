@@ -14,7 +14,7 @@ async def cmd_start(message: types.Message):
             await db.execute("INSERT INTO users (user_id, registered_at) VALUES (?, ?)", (
                 message.from_user.id, datetime.datetime.now().isoformat()))
             await db.commit()
-    await message.answer(text="👋 Welcome to StoreBot! Choose an option:", reply_markup=main_menu_kb())
+    await message.answer("👋 Welcome to StoreBot! Choose an option:", reply_markup=main_menu_kb())
 
 @router.callback_query(F.data == "check_balance")
 async def check_balance(callback: CallbackQuery):
@@ -30,7 +30,7 @@ async def browse_store(callback: CallbackQuery):
         cats = await cur.fetchall()
     if not cats:
         return await callback.message.edit_text("🚫 No categories available.")
-    await callback.message.edit_text(text="📂 Choose a category:", reply_markup=category_menu_kb(cats))
+    await callback.message.edit_text("📂 Choose a category:", reply_markup=category_menu_kb(cats))
 
 @router.callback_query(F.data.startswith("cat_"))
 async def list_items(callback: CallbackQuery):
