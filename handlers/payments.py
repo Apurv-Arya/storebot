@@ -14,6 +14,7 @@ router = Router()
 
 # FSM for receiving payment proof
 class PaymentProof(StatesGroup):
+    selecting_method = State()
     waiting_for_proof = State()
 
 @router.callback_query(F.data == "topup_options")
