@@ -6,7 +6,7 @@ from utils.config import BOT_TOKEN
 from database.db import init_db
 from handlers import user, admin, payments
 
-bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
+bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
 async def main():
