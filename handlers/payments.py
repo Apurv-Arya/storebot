@@ -1,6 +1,6 @@
 from aiogram import Router, F, types
 from aiogram.types import CallbackQuery, Message
-from keyboards.inline import topup_kb, main_menu_kb
+from keyboards.inline import manual_methods_kb, main_menu_kb
 from utils.config import ADMIN_IDS
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
