@@ -1,7 +1,7 @@
 from aiogram import Router, F, types
 from aiogram.types import CallbackQuery, Message
 from keyboards.inline import manual_methods_kb, topup_kb, main_menu_kb
-from utils.config import ADMIN_IDS
+from utils.config import ADMIN_IDS, PROOFS_CHANNEL_ID
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
@@ -43,7 +43,7 @@ async def payment_method_selected(callback: CallbackQuery, state: FSMContext):
 async def handle_payment_proof(message: Message, state: FSMContext):
     user_id = message.from_user.id
     data = await state.get_data()
-    method = data.get("method", "unknown").title()
+    method = data.get("method", "Unknown").title()
     await state.clear()
 
     caption = (
@@ -52,23 +52,38 @@ async def handle_payment_proof(message: Message, state: FSMContext):
         f"💳 Method: <b>{method}</b>\n"
     )
 
-    sent = False
+    success = False
+
+    # ✅ Forward to Admins
     for admin_id in ADMIN_IDS:
         try:
             if message.photo:
                 await message.bot.send_photo(admin_id, photo=message.photo[-1].file_id, caption=caption, parse_mode="HTML")
             elif message.document:
                 await message.bot.send_document(admin_id, document=message.document.file_id, caption=caption, parse_mode="HTML")
-            else:
+            elif message.text:
                 await message.bot.send_message(admin_id, caption + message.text, parse_mode="HTML")
-            sent = True
+            success = True
         except Exception as e:
-            print(f"❌ Failed to send to admin {admin_id}: {e}")
+            print(f"❌ Error sending proof to admin {admin_id}: {e}")
 
-    if sent:
-        await message.answer("✅ Your proof has been sent to our admins. You'll be credited once reviewed.")
+    # ✅ Forward to Proofs Channel
+    try:
+        if message.photo:
+            await message.bot.send_photo(PROOFS_CHANNEL_ID, photo=message.photo[-1].file_id, caption=caption, parse_mode="HTML")
+        elif message.document:
+            await message.bot.send_document(PROOFS_CHANNEL_ID, document=message.document.file_id, caption=caption, parse_mode="HTML")
+        elif message.text:
+            await message.bot.send_message(PROOFS_CHANNEL_ID, caption + message.text, parse_mode="HTML")
+        success = True
+    except Exception as e:
+        print(f"❌ Error sending proof to channel: {e}")
+
+    # ✅ Final response to user
+    if success:
+        await message.answer("✅ Your payment proof has been sent to our team.\nThey’ll review and update your balance soon.")
     else:
-        await message.answer("❌ Failed to forward your proof. Please try again later.")
+        await message.answer("❌ Failed to forward your proof. Please try again or contact support.")
 
 @router.callback_query(F.data == "main_menu")
 async def return_main_menu(callback: CallbackQuery):
