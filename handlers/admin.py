@@ -2,8 +2,18 @@ from aiogram import Router, types, F
 from database.db import DB_PATH
 from utils.config import ADMIN_IDS
 from aiogram.types import CallbackQuery
-from keyboards.inline import inventory_remove_kb,bulk_remove_kb
+from keyboards.inline import inventory_remove_kb, bulk_remove_kb, edit_item_kb
 import aiosqlite
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.types import FSInputFile
+
+class EditItemStates(StatesGroup):
+    choosing_field = State()
+    editing_title = State()
+    editing_price = State()
+    editing_description = State()
+    editing_category = State()
 
 router = Router()
 
@@ -19,23 +29,32 @@ async def add_category(msg: types.Message):
     await msg.answer(f"✅ Category '{name}' added.")
 
 @router.message(F.text.startswith("/additem"))
-async def add_item(msg: types.Message):
-    if not is_admin(msg.from_user.id): return
+async def add_item(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only")
+
     try:
-        _, title, price, stock, category, *desc = msg.text.split(" ", 5)
+        _, title, price, category, *desc = message.text.split(" ", 4)
+        price = float(price)
         desc = desc[0] if desc else ""
-        price, stock = float(price), int(stock)
     except:
-        return await msg.answer("⚠️ /additem <title> <price> <stock> <category> <desc?>")
+        return await message.answer("⚠️ Usage:\n/additem <title> <price> <category> <description?>")
+
     async with aiosqlite.connect(DB_PATH) as db:
         cat_cursor = await db.execute("SELECT category_id FROM categories WHERE name = ?", (category,))
         cat = await cat_cursor.fetchone()
         if not cat:
-            return await msg.answer("❌ Category not found.")
-        await db.execute("INSERT INTO items (title, price, stock, description, category_id) VALUES (?, ?, ?, ?, ?)",
-                         (title, price, stock, desc, cat[0]))
+            return await message.answer("❌ Category not found.")
+
+        category_id = cat[0]
+        await db.execute("""
+            INSERT INTO items (title, price, stock, description, category_id)
+            VALUES (?, ?, ?, ?, ?)
+        """, (title, price, 0, desc, category_id))  # Stock is always initialized to 0
         await db.commit()
-    await msg.answer(f"✅ Item '{title}' added.")
+
+    await message.answer(f"✅ Item <b>{title}</b> added successfully with initial stock of 0.\n💾 Stock will update automatically when you upload inventory.", parse_mode="HTML")
+
 
 @router.message(F.text.startswith("/upload"))
 async def upload_content(message: types.Message):
@@ -375,4 +394,330 @@ async def handle_bulk_remove(callback: CallbackQuery):
     await callback.message.edit_text("✅ Inventory content removed and stock updated.")
 
 
+@router.message(F.text.startswith("/edititem"))
+async def edit_item_start(message: types.Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only")
 
+    try:
+        _, item_id = message.text.split()
+        item_id = int(item_id)
+    except:
+        return await message.answer("⚠️ Usage: /edititem <item_id>")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute("SELECT title, price, description FROM items WHERE item_id = ?", (item_id,))
+        item = await cur.fetchone()
+
+    if not item:
+        return await message.answer("❌ Item not found.")
+
+    await state.set_data({"item_id": item_id})
+    await state.set_state(EditItemStates.choosing_field)
+
+    await message.answer(
+        f"📝 <b>Editing Item #{item_id}</b>\n\n"
+        f"🏷️ <b>Title:</b> {item[0]}\n"
+        f"💰 <b>Price:</b> ${item[1]:.2f}\n"
+        f"📃 <b>Description:</b> {item[2]}\n",
+        parse_mode="HTML",
+        reply_markup=edit_item_kb(item_id)
+    )
+
+@router.callback_query(F.data.startswith("edit_title_"))
+async def edit_title_button(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("✏️ Send the new title:")
+    await state.update_data(item_id=int(callback.data.split("_")[-1]))
+    await state.set_state(EditItemStates.editing_title)
+
+@router.callback_query(F.data.startswith("edit_price_"))
+async def edit_price_button(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("✏️ Send the new price (numbers only):")
+    await state.update_data(item_id=int(callback.data.split("_")[-1]))
+    await state.set_state(EditItemStates.editing_price)
+
+@router.callback_query(F.data.startswith("edit_desc_"))
+async def edit_description_button(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("✏️ Send the new description:")
+    await state.update_data(item_id=int(callback.data.split("_")[-1]))
+    await state.set_state(EditItemStates.editing_description)
+
+@router.callback_query(F.data.startswith("edit_cat_"))
+async def edit_category_button(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("✏️ Send the new category name:")
+    await state.update_data(item_id=int(callback.data.split("_")[-1]))
+    await state.set_state(EditItemStates.editing_category)
+
+@router.callback_query(F.data == "cancel_edit")
+async def cancel_edit(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.edit_text("❌ Edit canceled.")
+
+
+@router.message(EditItemStates.editing_title)
+async def set_new_title(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE items SET title = ? WHERE item_id = ?", (message.text, data['item_id']))
+        await db.commit()
+    await message.answer("✅ Title updated.")
+    await state.clear()
+
+@router.message(EditItemStates.editing_price)
+async def set_new_price(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    try:
+        price = float(message.text)
+    except:
+        return await message.answer("❌ Invalid price. Use numbers only.")
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE items SET price = ? WHERE item_id = ?", (price, data['item_id']))
+        await db.commit()
+    await message.answer("✅ Price updated.")
+    await state.clear()
+
+@router.message(EditItemStates.editing_description)
+async def set_new_description(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE items SET description = ? WHERE item_id = ?", (message.text, data['item_id']))
+        await db.commit()
+    await message.answer("✅ Description updated.")
+    await state.clear()
+
+@router.message(EditItemStates.editing_category)
+async def set_new_category(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute("SELECT category_id FROM categories WHERE name = ?", (message.text,))
+        row = await cur.fetchone()
+        if not row:
+            return await message.answer("❌ Category not found.")
+        await db.execute("UPDATE items SET category_id = ? WHERE item_id = ?", (row[0], data['item_id']))
+        await db.commit()
+    await message.answer("✅ Category updated.")
+    await state.clear()
+
+@router.message(F.text.startswith("/deleteitem"))
+async def delete_item(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only.")
+
+    try:
+        _, item_id = message.text.strip().split()
+        item_id = int(item_id)
+    except:
+        return await message.answer("⚠️ Usage: /deleteitem <item_id>")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Check if item exists
+        cur = await db.execute("SELECT title FROM items WHERE item_id = ?", (item_id,))
+        row = await cur.fetchone()
+        if not row:
+            return await message.answer("❌ Item not found.")
+        title = row[0]
+
+        # Delete unsold inventory
+        await db.execute("DELETE FROM inventory WHERE item_id = ? AND sold = 0", (item_id,))
+
+        # Delete the item
+        await db.execute("DELETE FROM items WHERE item_id = ?", (item_id,))
+        await db.commit()
+
+    await message.answer(f"🗑️ Item <b>{title}</b> (ID: {item_id}) and its unsold inventory have been deleted.", parse_mode="HTML")
+
+@router.message(F.text.startswith("/cloneitem"))
+async def clone_item(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only.")
+
+    try:
+        _, item_id = message.text.strip().split()
+        item_id = int(item_id)
+    except:
+        return await message.answer("⚠️ Usage: /cloneitem <item_id>")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("""
+            SELECT title, price, description, category_id
+            FROM items
+            WHERE item_id = ?
+        """, (item_id,))
+        item = await cursor.fetchone()
+
+        if not item:
+            return await message.answer("❌ Item not found.")
+
+        title, price, description, category_id = item
+        clone_title = f"{title} (Clone)"
+
+        await db.execute("""
+            INSERT INTO items (title, price, stock, description, category_id)
+            VALUES (?, ?, ?, ?, ?)
+        """, (clone_title, price, 0, description, category_id))
+
+        await db.commit()
+
+    await message.answer(f"🧬 Item <b>{title}</b> cloned successfully as <b>{clone_title}</b>.", parse_mode="HTML")
+
+
+@router.message(F.text == "/importitems")
+async def start_import(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only.")
+    await message.answer("📂 Send a .csv or .txt file with item list in this format:\n\n`title,price,category,description`", parse_mode="Markdown")
+
+
+@router.message(F.document)
+async def handle_import_file(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return
+
+    file = message.document
+    if not file.file_name.endswith(".csv") and not file.file_name.endswith(".txt"):
+        return await message.answer("❌ Please send a valid .csv or .txt file.")
+
+    path = f"temp_{file.file_id}.txt"
+    await message.bot.download(file, destination=path)
+
+    count = 0
+    skipped = 0
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                parts = [x.strip() for x in line.strip().split(",")]
+                if len(parts) < 3:
+                    skipped += 1
+                    continue
+
+                title = parts[0]
+                try:
+                    price = float(parts[1])
+                except:
+                    skipped += 1
+                    continue
+
+                category = parts[2]
+                description = parts[3] if len(parts) > 3 else ""
+
+                # get category_id or skip
+                cursor = await db.execute("SELECT category_id FROM categories WHERE name = ?", (category,))
+                row = await cursor.fetchone()
+                if not row:
+                    skipped += 1
+                    continue
+
+                cat_id = row[0]
+                await db.execute("""
+                    INSERT INTO items (title, price, stock, description, category_id)
+                    VALUES (?, ?, 0, ?, ?)
+                """, (title, price, description, cat_id))
+                count += 1
+
+        await db.commit()
+
+    import os
+    os.remove(path)
+
+    await message.answer(f"✅ Import complete.\n➕ Added: {count}\n⛔ Skipped: {skipped}")
+
+
+@router.message(F.text.startswith("/importinv"))
+async def start_inventory_import(message: types.Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only.")
+
+    try:
+        _, item_id = message.text.strip().split()
+        item_id = int(item_id)
+    except:
+        return await message.answer("⚠️ Usage: /importinv <item_id>")
+
+    # Check if item exists
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute("SELECT title FROM items WHERE item_id = ?", (item_id,))
+        row = await cur.fetchone()
+        if not row:
+            return await message.answer("❌ Item not found.")
+
+    await state.set_state("awaiting_inventory_file")
+    await state.update_data(item_id=item_id)
+    await message.answer(f"📥 Now send a `.txt` or `.csv` file with inventory content.\nEach line = 1 inventory unit.", parse_mode="Markdown")
+
+
+@router.message(F.document, state="awaiting_inventory_file")
+async def import_inventory_file(message: types.Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        return
+
+    data = await state.get_data()
+    item_id = data.get("item_id")
+    await state.clear()
+
+    file = message.document
+    if not file.file_name.endswith(".txt") and not file.file_name.endswith(".csv"):
+        return await message.answer("❌ Please send a `.txt` or `.csv` file.")
+
+    path = f"temp_inv_{file.file_id}.txt"
+    await message.bot.download(file, destination=path)
+
+    added = 0
+    with open(path, "r", encoding="utf-8") as f:
+        lines = [line.strip() for line in f if line.strip()]
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        for content in lines:
+            await db.execute("INSERT INTO inventory (item_id, content) VALUES (?, ?)", (item_id, content))
+        await db.execute("UPDATE items SET stock = stock + ? WHERE item_id = ?", (len(lines), item_id))
+        await db.commit()
+
+    import os
+    os.remove(path)
+
+    await message.answer(f"✅ Inventory import complete.\n🧾 Added {len(lines)} units to item ID {item_id}.")
+
+
+@router.message(F.text == "/idlist")
+async def show_all_ids(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only.")
+
+    msg = "<b>📦 StoreBot ID Summary</b>\n\n"
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Categories
+        msg += "📁 <b>Categories:</b>\n"
+        cur = await db.execute("SELECT category_id, name FROM categories")
+        cats = await cur.fetchall()
+        if cats:
+            for cid, name in cats:
+                msg += f"• ID: <code>{cid}</code> → {name}\n"
+        else:
+            msg += "❌ No categories found.\n"
+
+        msg += "\n🛍️ <b>Items:</b>\n"
+        cur = await db.execute("SELECT item_id, title, price FROM items")
+        items = await cur.fetchall()
+        if items:
+            for iid, title, price in items:
+                msg += f"• ID: <code>{iid}</code> → {title} (${price:.2f})\n"
+        else:
+            msg += "❌ No items found.\n"
+
+        msg += "\n📦 <b>Inventory (Top 10):</b>\n"
+        cur = await db.execute("""
+            SELECT inventory_id, item_id, sold
+            FROM inventory
+            ORDER BY inventory_id DESC
+            LIMIT 10
+        """)
+        inv = await cur.fetchall()
+        if inv:
+            for inv_id, item_id, sold in inv:
+                status = "✅ Sold" if sold else "🟢 Available"
+                msg += f"• ID: <code>{inv_id}</code> → Item {item_id} ({status})\n"
+        else:
+            msg += "❌ No inventory entries.\n"
+
+    await message.answer(msg, parse_mode="HTML")

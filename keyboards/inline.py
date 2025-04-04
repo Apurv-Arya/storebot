@@ -41,3 +41,12 @@ def bulk_remove_kb(item_id, inventory_list):
         InlineKeyboardButton("⬅️ Done", callback_data="main_menu")
     ]])
 
+def edit_item_kb(item_id):
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton("🏷️ Title", callback_data=f"edit_title_{item_id}")],
+        [InlineKeyboardButton("💰 Price", callback_data=f"edit_price_{item_id}")],
+        [InlineKeyboardButton("📃 Description", callback_data=f"edit_desc_{item_id}")],
+        [InlineKeyboardButton("📁 Category", callback_data=f"edit_cat_{item_id}")],
+        [InlineKeyboardButton("❌ Cancel", callback_data="cancel_edit")]
+    ])
+

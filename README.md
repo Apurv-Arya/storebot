@@ -85,15 +85,25 @@ Command	Description
 🔐 Admin Commands
 Command	Description
 /addcat <name>	Add a new category
-/additem <title> <price> <stock> <category> <desc?>	Add product
-/upload <item_id>	Reply to message to upload digital content
-/removeinv <item_id> Remove individual stock items from inventory
+/additem <title> <price> <category> <desc?>	Add product
+/upload <item_id>	Reply to message to upload 1 inventory unit
+/edititem <item_id>	Edit title, price, category, description
+/removeinv <item_id> View and Remove individual stock items from inventory
 /setbalance <uid> <amount>	Manually adjust user wallet
 /stats	Show total orders and revenue
 /userstats <uid>	Show spending and order count for a user
 /txhistory <uid>	Show last 10 transactions of user
-/uploadbulk <item_id>	Reply with multi-line text to bulk upload
+/uploadbulk <item_id>	Reply with multi-line text to bulk upload multiple stock units
 /bulkremove <item_id>	Tap ❌ buttons to remove individual stock items
+/deleteitem <id>	Delete item + unsold inventory
+/cloneitem <id>	Clone item (title, price, category, descrption)
+/importitems	Upload .csv or .txt item list (title,price,category,description	Format per row)
+/importinv <id>	Import inventory from file to item
+/idlist shows 
+   All category IDs
+   All item IDs & prices
+   Top 10 inventory IDs with sold status
+
 
 📩 Payment Flow
 1.User taps Top-Up Balance
