@@ -61,7 +61,7 @@ async def list_items(callback: CallbackQuery):
 
     # Build inline keyboard
     kb = [[
-        InlineKeyboardButton(text=f"{i[1]} - ${i[2]}", callback_data=f"buy_{i[0]}")
+        InlineKeyboardButton(text=f"{i[1]} - ${i[2]} ({i[3]})", callback_data=f"buy_{i[0]}")
     ] for i in items]
 
     nav = []
@@ -100,9 +100,28 @@ async def buy_item(callback: CallbackQuery):
         inventory_id, content = inv
         await db.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", (price, user_id))
         await db.execute("UPDATE inventory SET sold = 1, sold_to = ? WHERE inventory_id = ?", (user_id, inventory_id))
+        # Update item stock
         await db.execute("UPDATE items SET stock = stock - 1 WHERE item_id = ?", (item_id,))
         await db.execute("INSERT INTO transactions (user_id, amount, type, status, created_at) VALUES (?, ?, ?, ?, ?)",
                          (user_id, price, "purchase", "success", datetime.datetime.now().isoformat()))
+
+        # Check new stock level
+        cursor = await db.execute("SELECT stock FROM items WHERE item_id = ?", (item_id,))
+         new_stock = (await cursor.fetchone())[0]
+
+         # Alert if low stock
+         if new_stock <= 2:
+             alert_text = (
+                 f"⚠️ <b>Low Stock Alert</b>\n\n"
+                 f"📦 Item: <b>{title}</b>\n"
+                 f"📉 Remaining stock: <b>{new_stock}</b>\n"
+                 f"🛒 Please restock soon!"
+             )
+             for admin_id in ADMIN_IDS:
+                 try:
+                     await callback.bot.send_message(admin_id, alert_text, parse_mode="HTML")
+                 except Exception as e:
+                     print(f"❌ Failed to alert admin {admin_id}: {e}")
         await db.commit()
     await callback.message.answer(f"✅ Here’s your product:\n\n{content}")
 
