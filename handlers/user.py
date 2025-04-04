@@ -66,12 +66,12 @@ async def list_items(callback: CallbackQuery):
 
     nav = []
     if page > 0:
-        nav.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"cat_{cat_id}_{page-1}"))
+        nav.append(InlineKeyboardButton(text="⬅️ Prev", callback_data=f"cat_{cat_id}_{page-1}"))
     if offset + per_page < total:
-        nav.append(InlineKeyboardButton("➡️ Next", callback_data=f"cat_{cat_id}_{page+1}"))
+        nav.append(InlineKeyboardButton(text="➡️ Next", callback_data=f"cat_{cat_id}_{page+1}"))
     if nav:
         kb.append(nav)
-    kb.append([InlineKeyboardButton("⬅️ Back to Categories", callback_data="browse_store")])
+    kb.append([InlineKeyboardButton(text="⬅️ Back to Categories", callback_data="browse_store")])
 
     await callback.message.edit_text(
         f"📦 <b>{category_name}</b> (Page {page + 1})",
