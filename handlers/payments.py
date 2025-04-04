@@ -7,12 +7,12 @@ router = Router()
 
 @router.callback_query(F.data == "topup_options")
 async def topup(callback: CallbackQuery):
-    await callback.message.edit_text("💰 Choose top-up method:", reply_markup=topup_kb())
+    await callback.message.edit_text(text="💰 Choose top-up method:", reply_markup=topup_kb())
 
 @router.callback_query(F.data == "manual_topup")
 async def manual(callback: CallbackQuery):
     admins = "\n".join([f"• [Admin](tg://user?id={admin})" for admin in ADMIN_IDS])
     await callback.message.edit_text(
-        f"📩 Contact an admin to top-up your balance:\n\n{admins}",
+        text=f"📩 Contact an admin to top-up your balance:\n\n{admins}",
         parse_mode="Markdown"
     )
