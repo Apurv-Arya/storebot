@@ -9,8 +9,7 @@ def main_menu_kb():
 
 def topup_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📩 Manual (Contact Admin)", callback_data="manual_topup")],
-        [InlineKeyboardButton(text="🪙 Crypto (CoinPayments)", callback_data="crypto_topup")],
+        [InlineKeyboardButton(text="📩 Contact Admin for Top-Up", callback_data="manual_topup")],
     ])
 
 def store_item_kb(item_id):
