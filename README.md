@@ -52,7 +52,7 @@ storebot/
 - Python 3.10+  
 - Telegram Bot Token (from @BotFather)  
 - A private Telegram channel (for payment proofs logging)  
-- A list of Bot Admins Telegram usernames
+- A list of Bot Admins Telegram ID
 
 ---
 
