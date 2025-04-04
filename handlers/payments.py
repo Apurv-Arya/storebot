@@ -1,6 +1,7 @@
 from aiogram import Router, F, types
 from aiogram.types import CallbackQuery
 from keyboards.inline import topup_kb
+from keyboards.inline import main_menu_kb
 from utils.config import ADMIN_IDS
 
 router = Router()
@@ -16,3 +17,7 @@ async def manual(callback: CallbackQuery):
         text=f"📩 Contact an admin to top-up your balance:\n\n{admins}",
         parse_mode="Markdown"
     )
+
+@router.callback_query(F.data == "main_menu")
+async def return_main_menu(callback: CallbackQuery):
+    await callback.message.edit_text(text="👋 Main Menu:", reply_markup=main_menu_kb())
