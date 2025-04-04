@@ -15,5 +15,5 @@ def topup_kb():
 
 def category_menu_kb(categories):
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(cat[1], callback_data=f"cat_{cat[0]}")] for cat in categories
+        [InlineKeyboardButton(text=cat[1], callback_data=f"cat_{cat[0]}")] for cat in categories
     ] + [[InlineKeyboardButton(text="⬅️ Back", callback_data="main_menu")]])
