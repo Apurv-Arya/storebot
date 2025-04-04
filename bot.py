@@ -7,7 +7,8 @@ from database.db import init_db
 from handlers import user, admin, payments
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(storage=MemoryStorage())
+storage = MemoryStorage()
+dp = Dispatcher(storage=storage)
 
 async def main():
     await init_db()
