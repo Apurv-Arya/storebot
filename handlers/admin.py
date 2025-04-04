@@ -201,7 +201,7 @@ async def view_item_inventory(message: types.Message):
 
     msg = f"📦 <b>Unsold Inventory for: {title}</b>\n\n"
     for inv_id, content in contents:
-        msg += f"• <code>{short}</code>\n"
+        msg += f"• <code>{content}</code>\n"
 
     await message.answer(msg, parse_mode="HTML")
 
