@@ -9,8 +9,12 @@ def main_menu_kb():
 
 def topup_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
+<<<<<<< HEAD
         [InlineKeyboardButton("📩 Contact Admin", callback_data="manual_topup")],
         [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")]
+=======
+        [InlineKeyboardButton(text="📩 Contact Admin for Top-Up", callback_data="manual_topup")],
+>>>>>>> eeb6dc4934705509cc99ca8b9914dfe7dfa919bc
     ])
 
 def category_menu_kb(categories):
