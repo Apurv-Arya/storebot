@@ -28,7 +28,7 @@ def category_menu_kb(categories):
 
 def inventory_remove_kb(item_id, inventory_id):
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("❌ Remove", callback_data=f"removeinv_{item_id}_{inventory_id}")],
+        [InlineKeyboardButton(text="❌ Remove", callback_data=f"removeinv_{item_id}_{inventory_id}")],
         [InlineKeyboardButton(text="⬅️ Back", callback_data="main_menu")]
     ])
 
@@ -38,15 +38,15 @@ def bulk_remove_kb(item_id, inventory_list):
         for inv_id in inventory_list
     ]
     return InlineKeyboardMarkup(inline_keyboard=kb + [[
-        InlineKeyboardButton("⬅️ Done", callback_data="main_menu")
+        InlineKeyboardButton(text="⬅️ Done", callback_data="main_menu")
     ]])
 
 def edit_item_kb(item_id):
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("🏷️ Title", callback_data=f"edit_title_{item_id}")],
-        [InlineKeyboardButton("💰 Price", callback_data=f"edit_price_{item_id}")],
-        [InlineKeyboardButton("📃 Description", callback_data=f"edit_desc_{item_id}")],
-        [InlineKeyboardButton("📁 Category", callback_data=f"edit_cat_{item_id}")],
-        [InlineKeyboardButton("❌ Cancel", callback_data="cancel_edit")]
+        [InlineKeyboardButton(text="🏷️ Title", callback_data=f"edit_title_{item_id}")],
+        [InlineKeyboardButton(text="💰 Price", callback_data=f"edit_price_{item_id}")],
+        [InlineKeyboardButton(text="📃 Description", callback_data=f"edit_desc_{item_id}")],
+        [InlineKeyboardButton(text="📁 Category", callback_data=f"edit_cat_{item_id}")],
+        [InlineKeyboardButton(text="❌ Cancel", callback_data="cancel_edit")]
     ])
 
