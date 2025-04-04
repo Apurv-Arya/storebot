@@ -8,6 +8,7 @@ A fully-featured Telegram bot built in **Python** using `aiogram 3.x`, that acts
 
 ✅ User Wallet (Balance)  
 ✅ Auto Delivery of Purchased Items  
+✅ Auto Updates Stock When You Upload Or Delete Items
 ✅ Item listings show real-time stock on store💼
 ✅ Admin Panel with Item Upload and Inventory  
 ✅ Product Categories 📂  
@@ -86,10 +87,13 @@ Command	Description
 /addcat <name>	Add a new category
 /additem <title> <price> <stock> <category> <desc?>	Add product
 /upload <item_id>	Reply to message to upload digital content
+/removeinv <item_id> Remove individual stock items from inventory
 /setbalance <uid> <amount>	Manually adjust user wallet
 /stats	Show total orders and revenue
 /userstats <uid>	Show spending and order count for a user
 /txhistory <uid>	Show last 10 transactions of user
+/uploadbulk <item_id>	Reply with multi-line text to bulk upload
+/bulkremove <item_id>	Tap ❌ buttons to remove individual stock items
 
 📩 Payment Flow
 1.User taps Top-Up Balance

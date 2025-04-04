@@ -1,6 +1,7 @@
 from aiogram import Router, types, F
 from database.db import DB_PATH
 from utils.config import ADMIN_IDS
+from keyboards.inline import inventory_remove_kb
 import aiosqlite
 
 router = Router()
@@ -36,19 +37,34 @@ async def add_item(msg: types.Message):
     await msg.answer(f"✅ Item '{title}' added.")
 
 @router.message(F.text.startswith("/upload"))
-async def upload_content(msg: types.Message):
-    if not is_admin(msg.from_user.id): return
+async def upload_content(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only.")
+
     try:
-        _, item_id = msg.text.split()
+        _, item_id = message.text.split()
+        item_id = int(item_id)
     except:
-        return await msg.answer("⚠️ Usage: /upload <item_id> (reply to content)")
-    if not msg.reply_to_message:
-        return await msg.answer("📎 Reply to the message with content")
-    content = msg.reply_to_message.text or msg.reply_to_message.document.file_id
+        return await message.answer("⚠️ Usage: /upload <item_id> (reply to content)")
+
+    if not message.reply_to_message:
+        return await message.answer("📎 Reply to the content you want to upload.")
+
+    # Get content from reply (text or document)
+    content = message.reply_to_message.text or message.reply_to_message.document.file_id
+    if not content:
+        return await message.answer("❌ No valid content found in reply.")
+
     async with aiosqlite.connect(DB_PATH) as db:
+        # Insert content into inventory
         await db.execute("INSERT INTO inventory (item_id, content) VALUES (?, ?)", (item_id, content))
+
+        # Auto-update stock count for item
+        await db.execute("UPDATE items SET stock = stock + 1 WHERE item_id = ?", (item_id,))
         await db.commit()
-    await msg.answer("✅ Content uploaded.")
+
+    await message.answer("✅ Content uploaded and stock updated automatically.")
+
 
 @router.message(F.text.startswith("/setbalance"))
 async def set_user_balance(message: types.Message):
@@ -204,4 +220,151 @@ async def view_item_inventory(message: types.Message):
         msg += f"• <code>{content}</code>\n"
 
     await message.answer(msg, parse_mode="HTML")
+
+
+@router.message(F.text.startswith("/removeinv"))
+async def remove_inventory_list(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only.")
+
+    try:
+        _, item_id = message.text.split()
+        item_id = int(item_id)
+    except:
+        return await message.answer("⚠️ Usage: /removeinv <item_id>")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute("SELECT title FROM items WHERE item_id = ?", (item_id,))
+        item = await cur.fetchone()
+        if not item:
+            return await message.answer("❌ Item not found.")
+        title = item[0]
+
+        cur = await db.execute("""
+            SELECT inventory_id, content
+            FROM inventory
+            WHERE item_id = ? AND sold = 0
+            LIMIT 10
+        """, (item_id,))
+        items = await cur.fetchall()
+
+    if not items:
+        return await message.answer(f"📦 No unsold inventory for <b>{title}</b>.", parse_mode="HTML")
+
+    for inv_id, content in items:
+        await message.answer(
+            f"🧾 <b>{title}</b> Inventory #{inv_id}:\n<code>{content}</code>",
+            reply_markup=inventory_remove_kb(item_id, inv_id),
+            parse_mode="HTML"
+        )
+        
+
+@router.callback_query(F.data.startswith("removeinv_"))
+async def delete_inventory(callback: CallbackQuery):
+    data = callback.data.split("_")
+    item_id = int(data[1])
+    inv_id = int(data[2])
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Ensure it exists
+        cursor = await db.execute("SELECT content FROM inventory WHERE inventory_id = ? AND sold = 0", (inv_id,))
+        item = await cursor.fetchone()
+        if not item:
+            return await callback.answer("❌ Already sold or doesn't exist.")
+
+        # Delete inventory and decrement stock
+        await db.execute("DELETE FROM inventory WHERE inventory_id = ?", (inv_id,))
+        await db.execute("UPDATE items SET stock = stock - 1 WHERE item_id = ?", (item_id,))
+        await db.commit()
+
+    await callback.message.edit_text("✅ Inventory content removed and stock updated.")
+    await callback.answer("Removed.")
+
+
+@router.message(F.text.startswith("/uploadbulk"))
+async def bulk_upload(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only.")
+    
+    try:
+        _, item_id = message.text.split()
+        item_id = int(item_id)
+    except:
+        return await message.answer("⚠️ Usage: /uploadbulk <item_id> (then reply with lines of codes)")
+
+    if not message.reply_to_message:
+        return await message.answer("📎 Please reply to the command with content list.")
+
+    content = message.reply_to_message.text
+    if not content:
+        return await message.answer("❌ No text found in reply.")
+
+    lines = [line.strip() for line in content.splitlines() if line.strip()]
+    if not lines:
+        return await message.answer("⚠️ No valid content lines found.")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        for line in lines:
+            await db.execute("INSERT INTO inventory (item_id, content) VALUES (?, ?)", (item_id, line))
+        await db.execute("UPDATE items SET stock = stock + ? WHERE item_id = ?", (len(lines), item_id))
+        await db.commit()
+
+    await message.answer(f"✅ {len(lines)} items uploaded to inventory and stock updated.")
+
+
+@router.message(F.text.startswith("/bulkremove"))
+async def bulk_remove_start(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only.")
+    
+    try:
+        _, item_id = message.text.split()
+        item_id = int(item_id)
+    except:
+        return await message.answer("⚠️ Usage: /bulkremove <item_id>")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("""
+            SELECT inventory_id, content
+            FROM inventory
+            WHERE item_id = ? AND sold = 0
+            LIMIT 20
+        """, (item_id,))
+        items = await cursor.fetchall()
+
+    if not items:
+        return await message.answer("📭 No unsold inventory available.")
+
+    text = "🗑️ <b>Select inventory to remove</b>:\n\n"
+    for inv_id, content in items:
+        short = content[:60] + ("..." if len(content) > 60 else "")
+        text += f"• #{inv_id}: <code>{short}</code>\n"
+
+    inv_ids = [inv_id for inv_id, _ in items]
+    await message.answer(text, reply_markup=bulk_remove_kb(item_id, inv_ids), parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("bulkdel_"))
+async def handle_bulk_remove(callback: CallbackQuery):
+    try:
+        _, item_id, inv_id = callback.data.split("_")
+        item_id = int(item_id)
+        inv_id = int(inv_id)
+    except:
+        return await callback.answer("❌ Invalid selection.")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute("SELECT 1 FROM inventory WHERE inventory_id = ? AND sold = 0", (inv_id,))
+        exists = await cur.fetchone()
+        if not exists:
+            return await callback.answer("Already deleted or sold.")
+
+        await db.execute("DELETE FROM inventory WHERE inventory_id = ?", (inv_id,))
+        await db.execute("UPDATE items SET stock = stock - 1 WHERE item_id = ?", (item_id,))
+        await db.commit()
+
+    await callback.answer("✅ Removed.")
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.edit_text("✅ Item removed from inventory.")
+
 
