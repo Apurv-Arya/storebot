@@ -1,7 +1,8 @@
 from aiogram import Router, types, F
 from database.db import DB_PATH
 from utils.config import ADMIN_IDS
-from keyboards.inline import inventory_remove_kb,bulk_remove_kb
+from keyboards.inline import inventory_remove_kb
+from keyboards.inline import bulk_remove_kb
 import aiosqlite
 
 router = Router()
