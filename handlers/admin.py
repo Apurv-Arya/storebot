@@ -201,7 +201,6 @@ async def view_item_inventory(message: types.Message):
 
     msg = f"📦 <b>Unsold Inventory for: {title}</b>\n\n"
     for inv_id, content in contents:
-        short = content[:60] + ("..." if len(content) > 60 else "")
         msg += f"• <code>{short}</code>\n"
 
     await message.answer(msg, parse_mode="HTML")
