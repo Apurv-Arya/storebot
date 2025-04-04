@@ -23,11 +23,13 @@ python bot.py
 
 💻 Admin Commands
 Command	Description
-/addcat NAME	Create new category
-/additem	Add item: <title> <price> <stock> <category> <desc>
+/addcat <name>	Create new category
+/additem	Add item: <title> <price> <stock> <category> <desc?>
 /upload	Reply to content & send /upload <item_id>
 /setbalance	Set user balance
-/catstats	Category sales overview
+/stats	Sales Stats
+/userstats <user_id>
+/txhistory <user_id>
 
 
 🚀 Usage
