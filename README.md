@@ -8,6 +8,7 @@ A fully-featured Telegram bot built in **Python** using `aiogram 3.x`, that acts
 
 ✅ User Wallet (Balance)  
 ✅ Auto Delivery of Purchased Items  
+✅ Item listings show real-time stock on store💼
 ✅ Admin Panel with Item Upload and Inventory  
 ✅ Product Categories 📂  
 ✅ Manual Top-Up + Payment Method Selection  
@@ -18,6 +19,9 @@ A fully-featured Telegram bot built in **Python** using `aiogram 3.x`, that acts
 ✅ /myorders – Show purchased items  
 ✅ /resend – Resend purchased items  
 ✅ Admin Stats: `/stats`, `/userstats`, `/txhistory`, `/setbalance`
+✅ Auto-alerts to all Admins when any item stock hits 2 or 1
+✅ Alerts include: item name + stock count
+✅ No manual monitoring needed
 
 ---
 
