@@ -167,3 +167,42 @@ async def transaction_history(message: types.Message):
             f"   🕒 {tx[4]}\n\n"
         )
     await message.answer(msg)
+
+@router.message(F.text.startswith("/inventory"))
+async def view_item_inventory(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only.")
+
+    try:
+        _, item_id = message.text.split()
+        item_id = int(item_id)
+    except:
+        return await message.answer("⚠️ Usage: /inventory <item_id>")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Get item title
+        cursor = await db.execute("SELECT title FROM items WHERE item_id = ?", (item_id,))
+        item = await cursor.fetchone()
+        if not item:
+            return await message.answer("❌ Item not found.")
+
+        title = item[0]
+        # Get unsold inventory
+        cursor = await db.execute("""
+            SELECT inventory_id, content
+            FROM inventory
+            WHERE item_id = ? AND sold = 0
+            LIMIT 10
+        """, (item_id,))
+        contents = await cursor.fetchall()
+
+    if not contents:
+        return await message.answer(f"📦 No unsold inventory found for <b>{title}</b>.", parse_mode="HTML")
+
+    msg = f"📦 <b>Unsold Inventory for: {title}</b>\n\n"
+    for inv_id, content in contents:
+        short = content[:60] + ("..." if len(content) > 60 else "")
+        msg += f"• <code>{short}</code>\n"
+
+    await message.answer(msg, parse_mode="HTML")
+
