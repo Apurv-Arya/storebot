@@ -1,11 +1,13 @@
 import asyncio
 from aiogram import Bot, Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
+
 from database.models import init_db
 from utils.config import BOT_TOKEN
 from handlers import user, admin, payments
 
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
+dp = Dispatcher(storage=MemoryStorage())
 
 async def main():
     await init_db()
