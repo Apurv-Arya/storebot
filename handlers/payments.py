@@ -23,9 +23,9 @@ async def topup_options(callback: CallbackQuery):
 
 @router.callback_query(F.data == "manual_topup")
 async def manual_topup(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(PaymentProof.selecting_method)
     await callback.message.edit_text(
-        "📩 Please send your payment proof (screenshot, receipt, or message).",
-        reply_markup=topup_kb()
+        "💳 Choose a payment method:", reply_markup=manual_methods_kb()
     )
     await state.set_state(PaymentProof.waiting_for_proof)
 
@@ -62,30 +62,50 @@ async def manual_topup(callback: CallbackQuery, state: FSMContext):
         "Once received, an admin will review it manually.",
         reply_markup=topup_kb()
     )
+
+@router.callback_query(F.data.startswith("method_"))
+async def payment_method_selected(callback: CallbackQuery, state: FSMContext):
+    method = callback.data.split("_")[1]
+    await state.update_data(method=method)
+    await state.set_state(PaymentProof.waiting_for_proof)
+
+    await callback.message.edit_text(
+        f"📩 You selected <b>{method.title()}</b>.\n\nPlease send your payment proof (receipt/screenshot).",
+        parse_mode="HTML"
+    )
     await state.set_state(PaymentStates.waiting_for_proof)
 
-@router.message(PaymentStates.waiting_for_proof)
-async def handle_proof(message: types.Message, state: FSMContext):
+@router.message(PaymentProof.waiting_for_proof)
+async def handle_payment_proof(message: Message, state: FSMContext):
+    user_id = message.from_user.id
+    data = await state.get_data()
+    method = data.get("method", "unknown").title()
     await state.clear()
-    forward_text = f"🧾 <b>New Payment Proof</b>\nFrom User: <code>{message.from_user.id}</code>\n"
-    sent = False
 
-    for admin in ADMIN_IDS:
+    caption = (
+        f"🧾 <b>New Payment Proof</b>\n"
+        f"👤 User ID: <code>{user_id}</code>\n"
+        f"💳 Method: <b>{method}</b>\n"
+    )
+
+    sent = False
+    for admin_id in ADMIN_IDS:
         try:
             if message.photo:
-                await message.bot.send_photo(admin, message.photo[-1].file_id, caption=forward_text, parse_mode="HTML")
+                await message.bot.send_photo(admin_id, photo=message.photo[-1].file_id, caption=caption, parse_mode="HTML")
             elif message.document:
-                await message.bot.send_document(admin, message.document.file_id, caption=forward_text, parse_mode="HTML")
+                await message.bot.send_document(admin_id, document=message.document.file_id, caption=caption, parse_mode="HTML")
             else:
-                await message.bot.send_message(admin, forward_text + "\n" + message.text, parse_mode="HTML")
+                await message.bot.send_message(admin_id, caption + message.text, parse_mode="HTML")
             sent = True
         except Exception as e:
-            print(f"Failed to send proof to admin {admin}: {e}")
+            print(f"❌ Failed to send to admin {admin_id}: {e}")
 
     if sent:
-        await message.answer("✅ Payment proof sent to admin. You'll be notified once your balance is updated.")
+        await message.answer("✅ Your proof has been sent to our admins. You'll be credited once reviewed.")
     else:
-        await message.answer("❌ Failed to send proof to admins. Please try again or contact them directly.")
+        await message.answer("❌ Failed to forward your proof. Please try again later.")
+
 
 @router.callback_query(F.data == "topup_options")
 async def topup(callback: CallbackQuery):
