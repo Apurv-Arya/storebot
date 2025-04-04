@@ -105,3 +105,73 @@ async def buy_item(callback: CallbackQuery):
                          (user_id, price, "purchase", "success", datetime.datetime.now().isoformat()))
         await db.commit()
     await callback.message.answer(f"✅ Here’s your product:\n\n{content}")
+
+@router.message(F.text == "/info")
+async def user_info(message: types.Message):
+    user_id = message.from_user.id
+    username = message.from_user.username or "❌ No username"
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("SELECT balance FROM users WHERE user_id = ?", (user_id,))
+        row = await cursor.fetchone()
+        balance = row[0] if row else 0.0
+
+    await message.answer(
+        f"👤 <b>Your Info</b>\n\n"
+        f"🆔 Telegram ID: <code>{user_id}</code>\n"
+        f"🔗 Username: @{username}\n"
+        f"💰 Balance: <b>${balance:.2f}</b>",
+        parse_mode="HTML"
+    )
+
+@router.message(F.text == "/myorders")
+async def my_orders(message: types.Message):
+    user_id = message.from_user.id
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("""
+            SELECT i.inventory_id, it.title, i.content
+            FROM inventory i
+            JOIN items it ON it.item_id = i.item_id
+            WHERE i.sold = 1 AND i.sold_to = ?
+            ORDER BY i.inventory_id DESC
+            LIMIT 10
+        """, (user_id,))
+        orders = await cursor.fetchall()
+
+    if not orders:
+        return await message.answer("📭 You haven’t purchased any items yet.")
+
+    text = "📦 <b>Your Last 10 Orders</b>:\n\n"
+    for idx, (inventory_id, title, content) in enumerate(orders, start=1):
+        text += f"<b>{idx}.</b> {title}\n🧾 <code>{content[:50]}{'...' if len(content) > 50 else ''}</code>\n\n"
+
+    await message.answer(text, parse_mode="HTML")
+
+@router.message(F.text.startswith("/resend"))
+async def resend_item(message: types.Message):
+    user_id = message.from_user.id
+    args = message.text.split(maxsplit=1)
+
+    if len(args) < 2:
+        return await message.answer("⚠️ Usage: /resend <item title>")
+
+    query = args[1].lower()
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("""
+            SELECT it.title, i.content
+            FROM inventory i
+            JOIN items it ON it.item_id = i.item_id
+            WHERE i.sold_to = ? AND LOWER(it.title) LIKE ?
+            ORDER BY i.inventory_id DESC
+            LIMIT 1
+        """, (user_id, f"%{query}%"))
+        result = await cursor.fetchone()
+
+    if not result:
+        return await message.answer("❌ No matching item found in your purchase history.")
+
+    title, content = result
+    await message.answer(f"📦 <b>{title}</b> (Resent)\n\n<code>{content}</code>", parse_mode="HTML")
+
