@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 🛍 StoreBot++ v2.0
 
 A full-featured Telegram Store Bot built with `aiogram`.
@@ -67,4 +66,3 @@ For Admins:
 /setbalance <user_id> <amount> — set/adjust user balance
 
 /stats — view bot sales stats
->>>>>>> eeb6dc4934705509cc99ca8b9914dfe7dfa919bc
