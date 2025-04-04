@@ -2,7 +2,6 @@ from aiogram import Router, types, F
 from keyboards.inline import topup_kb
 from utils.config import ADMIN_IDS
 from aiogram.types import CallbackQuery
-from utils.coinpayments import CoinPaymentsAPI
 import random
 from database.models import DB_PATH
 import aiosqlite
