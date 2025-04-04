@@ -345,25 +345,33 @@ async def bulk_remove_start(message: types.Message):
 
 @router.callback_query(F.data.startswith("bulkdel_"))
 async def handle_bulk_remove(callback: CallbackQuery):
+    data = callback.data.split("_")
+    if len(data) != 3:
+        return await callback.answer("❌ Invalid data.")
+
+    _, item_id_str, inv_id_str = data
+
     try:
-        _, item_id, inv_id = callback.data.split("_")
-        item_id = int(item_id)
-        inv_id = int(inv_id)
-    except:
-        return await callback.answer("❌ Invalid selection.")
+        item_id = int(item_id_str)
+        inv_id = int(inv_id_str)
+    except ValueError:
+        return await callback.answer("❌ Invalid IDs.")
 
     async with aiosqlite.connect(DB_PATH) as db:
-        cur = await db.execute("SELECT 1 FROM inventory WHERE inventory_id = ? AND sold = 0", (inv_id,))
-        exists = await cur.fetchone()
-        if not exists:
-            return await callback.answer("Already deleted or sold.")
+        # Check if inventory exists and is unsold
+        cur = await db.execute("SELECT content FROM inventory WHERE inventory_id = ? AND sold = 0", (inv_id,))
+        result = await cur.fetchone()
 
+        if not result:
+            return await callback.answer("❌ Already sold or doesn't exist.")
+
+        # Delete and update stock
         await db.execute("DELETE FROM inventory WHERE inventory_id = ?", (inv_id,))
         await db.execute("UPDATE items SET stock = stock - 1 WHERE item_id = ?", (item_id,))
         await db.commit()
 
-    await callback.answer("✅ Removed.")
-    await callback.message.edit_reply_markup(reply_markup=None)
-    await callback.message.edit_text("✅ Item removed from inventory.")
+    await callback.answer("✅ Inventory removed.")
+    await callback.message.edit_text("✅ Inventory content removed and stock updated.")
+
 
 
