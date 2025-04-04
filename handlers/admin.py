@@ -4,6 +4,7 @@ from utils.config import ADMIN_IDS
 from aiogram.types import CallbackQuery
 from keyboards.inline import inventory_remove_kb, bulk_remove_kb, edit_item_kb
 import aiosqlite
+from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import FSInputFile
