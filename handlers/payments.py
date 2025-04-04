@@ -1,4 +1,4 @@
-from aiogram import Router, types, F
+from aiogram import Router, F, types
 from aiogram.types import CallbackQuery
 from keyboards.inline import topup_kb
 from utils.config import ADMIN_IDS
@@ -6,13 +6,13 @@ from utils.config import ADMIN_IDS
 router = Router()
 
 @router.callback_query(F.data == "topup_options")
-async def topup_options(callback: CallbackQuery):
+async def topup(callback: CallbackQuery):
     await callback.message.edit_text("💰 Choose top-up method:", reply_markup=topup_kb())
 
 @router.callback_query(F.data == "manual_topup")
-async def manual_topup(callback: CallbackQuery):
-    admins = "\n".join([f"• [Admin](tg://user?id={aid})" for aid in ADMIN_IDS])
+async def manual(callback: CallbackQuery):
+    admins = "\n".join([f"• [Admin](tg://user?id={admin})" for admin in ADMIN_IDS])
     await callback.message.edit_text(
-        f"📩 To top up manually, message an admin:\n\n{admins}",
-        parse_mode="Markdown", reply_markup=topup_kb()
+        f"📩 Contact an admin to top-up your balance:\n\n{admins}",
+        parse_mode="Markdown"
     )
