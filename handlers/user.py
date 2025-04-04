@@ -61,7 +61,7 @@ async def list_items(callback: CallbackQuery):
 
     # Build inline keyboard
     kb = [[
-        InlineKeyboardButton(f"{i[1]} - ${i[2]}", callback_data=f"buy_{i[0]}")
+        InlineKeyboardButton(text=f"{i[1]} - ${i[2]}", callback_data=f"buy_{i[0]}")
     ] for i in items]
 
     nav = []
