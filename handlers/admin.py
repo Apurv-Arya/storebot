@@ -646,7 +646,11 @@ async def start_inventory_import(message: types.Message, state: FSMContext):
     await message.answer(f"📥 Now send a `.txt` or `.csv` file with inventory content.\nEach line = 1 inventory unit.", parse_mode="Markdown")
 
 
-@router.message(F.document, state="awaiting_inventory_file")
+@router.message(F.document)
+async def import_inventory_file(message: Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state != "awaiting_inventory_file":
+        return  # ignore other uploads not in import mode
 async def import_inventory_file(message: types.Message, state: FSMContext):
     if not is_admin(message.from_user.id):
         return
