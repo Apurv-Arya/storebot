@@ -3,6 +3,8 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQu
 from database.db import DB_PATH
 from keyboards.inline import main_menu_kb, category_menu_kb
 import aiosqlite, datetime
+from utils.config import STOREBOT_NAME
+
 
 router = Router()
 
@@ -14,7 +16,7 @@ async def cmd_start(message: types.Message):
             await db.execute("INSERT INTO users (user_id, registered_at) VALUES (?, ?)", (
                 message.from_user.id, datetime.datetime.now().isoformat()))
             await db.commit()
-    await message.answer("👋 Welcome to {STOREBOT_NAME}! Choose an option:", reply_markup=main_menu_kb())
+    await message.answer(f"👋 Welcome to ! Choose an option:", reply_markup=main_menu_kb())
 
 @router.callback_query(F.data == "check_balance")
 async def check_balance(callback: CallbackQuery):

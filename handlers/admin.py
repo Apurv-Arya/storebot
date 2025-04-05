@@ -8,6 +8,7 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import FSInputFile
+from utils.config import STOREBOT_NAME
 
 class EditItemStates(StatesGroup):
     choosing_field = State()
@@ -689,7 +690,7 @@ async def show_all_ids(message: types.Message):
         return await message.answer("🔒 Admin only.")
 
     try:
-        msg = "<b>📦 {STOREBOT_NAME} ID Summary</b>\n\n"
+        msg = f"<b>📦 {STOREBOT_NAME} ID Summary</b>\n\n"
 
         async with aiosqlite.connect(DB_PATH) as db:
 
