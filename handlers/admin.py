@@ -738,3 +738,67 @@ async def show_all_ids(message: types.Message):
     except Exception as e:
         await message.answer(f"❌ Error generating ID list:\n<code>{e}</code>", parse_mode="HTML")
 
+@router.message(F.text == "/dashboard")
+async def analytics_dashboard(message: Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admin only.")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Total sales
+        cur = await db.execute("SELECT SUM(amount), COUNT(*) FROM transactions WHERE type LIKE 'purchase%' AND status = 'success'")
+        total_sales, tx_count = await cur.fetchone()
+        total_sales = total_sales or 0
+
+        # Total users
+        cur = await db.execute("SELECT COUNT(*) FROM users")
+        total_users = (await cur.fetchone())[0]
+
+        # Top-selling items
+        cur = await db.execute("""
+            SELECT i.title, COUNT(*) as c
+            FROM inventory inv
+            JOIN items i ON i.item_id = inv.item_id
+            WHERE inv.sold = 1
+            GROUP BY inv.item_id
+            ORDER BY c DESC
+            LIMIT 5
+        """)
+        item_stats = await cur.fetchall()
+
+        # Top buyers
+        cur = await db.execute("""
+            SELECT u.username, COUNT(*) as c
+            FROM transactions t
+            JOIN users u ON u.user_id = t.user_id
+            WHERE t.type LIKE 'purchase%' AND t.status = 'success'
+            GROUP BY t.user_id
+            ORDER BY c DESC
+            LIMIT 5
+        """)
+        buyers = await cur.fetchall()
+
+        # Last 7 days sales
+        cur = await db.execute("""
+            SELECT date(created_at), SUM(amount)
+            FROM transactions
+            WHERE type LIKE 'purchase%' AND status = 'success'
+              AND created_at >= date('now', '-7 days')
+            GROUP BY date(created_at)
+            ORDER BY date(created_at) DESC
+        """)
+        week_stats = await cur.fetchall()
+
+    # Format response
+    text = (
+        "<b>📊 Store Analytics Dashboard</b>\n\n"
+        f"🛒 <b>Total Sales:</b> ${total_sales:.2f} ({tx_count} orders)\n"
+        f"👥 <b>Total Users:</b> {total_users}\n\n"
+        f"🏆 <b>Top-Selling Items:</b>\n" +
+        ("\n".join([f"• {t[0]} ({t[1]} sales)" for t in item_stats]) or "No data") +
+        "\n\n👤 <b>Top Buyers:</b>\n" +
+        ("\n".join([f"• @{b[0] or 'N/A'} ({b[1]} orders)" for b in buyers]) or "No data") +
+        "\n\n📅 <b>Last 7 Days Revenue:</b>\n" +
+        ("\n".join([f"{d}: ${v:.2f}" for d, v in week_stats]) or "No recent sales")
+    )
+
+    await message.answer(text, parse_mode="HTML")
