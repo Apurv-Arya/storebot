@@ -2,6 +2,16 @@ import aiosqlite
 
 DB_PATH = "store.db"
 
+async def safe_alter_column():
+    async with aiosqlite.connect(DB_PATH) as db:
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN username TEXT;")
+            await db.commit()
+        except aiosqlite.OperationalError as e:
+            if "duplicate column" not in str(e).lower():
+                raise  # real error
+
+
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
@@ -9,7 +19,6 @@ async def init_db():
             user_id INTEGER PRIMARY KEY,
             balance REAL DEFAULT 0,
             registered_at TEXT
-            ALTER TABLE users ADD COLUMN username TEXT;
         )""")
         await db.execute("""
         CREATE TABLE IF NOT EXISTS categories (
