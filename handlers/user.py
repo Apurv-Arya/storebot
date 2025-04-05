@@ -28,9 +28,14 @@ async def start_command(message: Message):
 
         await db.execute("UPDATE users SET username = ? WHERE user_id = ?", (username, user_id))
         await db.commit()
-    await message.answer(f"👋 Welcome to <b>{STOREBOT_NAME}</b>, @{username}!\n"
-                         f"💰 <b>Your Balance:</b> ${balance:.2f}\n\n"
-                         f"Use the Buttons Below To Choose an option:", reply_markup=main_menu_kb())
+
+    msg = (
+        f"👋 Welcome to <b>{STOREBOT_NAME}</b>, @{username}!\n"
+        f"💰 <b>Your Balance:</b> ${balance:.2f}\n\n"
+        "Select an option below to get started 👇"
+    )
+
+    await message.answer(msg, parse_mode="HTML", reply_markup=main_menu_kb())
 
 @router.callback_query(F.data == "browse_store")
 async def browse_store(callback: CallbackQuery):
