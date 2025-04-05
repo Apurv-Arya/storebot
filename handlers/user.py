@@ -217,10 +217,3 @@ async def menu_info(callback: CallbackQuery):
 async def menu_orders(callback: CallbackQuery):
     await callback.message.edit_text("/myorders – View your purchased items.")
 
-@router.callback_query(F.data == "menu_topup")
-async def menu_topup(callback: CallbackQuery):
-    await callback.message.edit_text("/topup – Add funds to your wallet.")
-
-@router.callback_query(F.data == "menu_store")
-async def menu_store(callback: CallbackQuery):
-    await callback.message.edit_text("/store – Browse the available products.")
