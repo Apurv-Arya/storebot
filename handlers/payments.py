@@ -1,6 +1,6 @@
 from aiogram import Router, F, types
 from aiogram.types import CallbackQuery, Message
-from keyboards.inline import manual_methods_kb, topup_kb, main_menu_kb
+from keyboards.inline import manual_methods_kb, topup_kb, main_menu_kb, proof_kb
 from utils.config import ADMIN_IDS, PROOFS_CHANNEL_ID
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -19,7 +19,7 @@ PAYMENT_METHODS = {
     },
     "PayPal": {
         "title": "<b>💳 PayPal</b>",
-        "details": "<b>PayPal Email: apurvarya19@gmail.com</b>\n\n <b>Send 0.3$ + %10 Extra For Fees (You'll have to cover the fees)</b>"
+        "details": "<b>PayPal Email: apurvarya19@gmail.com</b>\n\n<b>Send 0.3$ + %10 Extra For Fees (You'll have to cover the fees)</b>"
     }
 }
 
@@ -57,11 +57,13 @@ async def payment_method_selected(callback: CallbackQuery, state: FSMContext):
     await state.set_state(PaymentProof.waiting_for_proof)
 
     await callback.message.edit_text(
-        f"{data['title']}\n\n"
-        f"<b>Send payment to:</b>\n<code>{data['details']}</code>\n\n"
-        "📩 After sending payment, reply with a screenshot or transaction ID here.",
-        parse_mode="HTML"
-    )
+    f"{data['title']}\n\n"
+    f"<b>Send payment to:</b>\n<code>{data['details']}</code>\n\n"
+    "📩 After sending payment, reply with a screenshot or transaction ID here.",
+    parse_mode="HTML",
+    reply_markup=proof_kb  # <- add this
+)
+
  
 @router.message(PaymentProof.waiting_for_proof)
 async def handle_payment_proof(message: Message, state: FSMContext):
@@ -114,3 +116,8 @@ async def handle_payment_proof(message: Message, state: FSMContext):
 async def return_main_menu(callback: CallbackQuery):
     await callback.message.edit_text(text="👋 Main Menu:", reply_markup=main_menu_kb())
 
+
+@router.callback_query(F.data == "cancel_topup")
+async def cancel_topup(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.edit_text("❌ Top-up cancelled.", reply_markup=main_menu_kb())

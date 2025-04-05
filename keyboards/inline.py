@@ -54,3 +54,6 @@ def edit_item_kb(item_id):
         [InlineKeyboardButton(text="❌ Cancel", callback_data="cancel_edit")]
     ])
 
+proof_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton("❌ Cancel", callback_data="cancel_topup")]
+])
