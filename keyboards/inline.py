@@ -4,7 +4,8 @@ def main_menu_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🛍 Browse Store", callback_data="browse_store")],
         [InlineKeyboardButton(text="💰 Top-Up Balance", callback_data="topup_options")],
-        [InlineKeyboardButton(text="💼 My Balance", callback_data="check_balance")]
+        [InlineKeyboardButton(text="💼 My Balance", callback_data="check_balance")],
+        [InlineKeyboardButton(text="👤 Info", callback_data="/info")]
     ])
 
 def topup_kb():
