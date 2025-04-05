@@ -689,7 +689,7 @@ async def show_all_ids(message: types.Message):
         return await message.answer("🔒 Admin only.")
 
     try:
-        msg = "<b>📦 StoreBot ID Summary</b>\n\n"
+        msg = "<b>📦 {STOREBOT_NAME} ID Summary</b>\n\n"
 
         async with aiosqlite.connect(DB_PATH) as db:
 
