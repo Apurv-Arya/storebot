@@ -768,9 +768,11 @@ async def analytics_dashboard(message: Message):
 
         # Top buyers
         cur = await db.execute("""
-            SELECT u.username, COUNT(*) as count
+            SELECT 
+                COALESCE(u.username, 'N/A') as username,
+                COUNT(*) as count
             FROM transactions t
-            JOIN users u ON u.user_id = t.user_id
+            LEFT JOIN users u ON u.user_id = t.user_id
             WHERE t.type LIKE 'purchase%' AND t.status = 'success'
             GROUP BY t.user_id
             ORDER BY count DESC
@@ -804,7 +806,7 @@ async def analytics_dashboard(message: Message):
     text += "\n👤 <b>Top Buyers:</b>\n"
     if buyers:
         for username, count in buyers:
-            user_disp = f"@{username}" if username else "User"
+            user_disp = f"@{username}" if username != "N/A" else "User"
             text += f"• {user_disp} – {count} orders\n"
     else:
         text += "• No buyers yet\n"

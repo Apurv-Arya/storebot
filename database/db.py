@@ -9,6 +9,7 @@ async def init_db():
             user_id INTEGER PRIMARY KEY,
             balance REAL DEFAULT 0,
             registered_at TEXT
+            ALTER TABLE users ADD COLUMN username TEXT;
         )""")
         await db.execute("""
         CREATE TABLE IF NOT EXISTS categories (
