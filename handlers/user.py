@@ -9,21 +9,28 @@ from utils.config import STOREBOT_NAME
 router = Router()
 
 @router.message(F.text == "/start")
-async def cmd_start(message: types.Message):
-    async with aiosqlite.connect(DB_PATH) as db:
-        user = await db.execute("SELECT * FROM users WHERE user_id = ?", (message.from_user.id,))
-        if not await user.fetchone():
-            await db.execute("INSERT INTO users (user_id, registered_at) VALUES (?, ?)", (
-                message.from_user.id, datetime.datetime.now().isoformat()))
-            await db.commit()
-    await message.answer(f"👋 Welcome to {STOREBOT_NAME}! Choose an option:", reply_markup=main_menu_kb())
+async def start_command(message: Message):
+    user = message.from_user
+    user_id = user.id
+    username = user.username or "N/A"
 
-@router.callback_query(F.data == "check_balance")
-async def check_balance(callback: CallbackQuery):
     async with aiosqlite.connect(DB_PATH) as db:
-        cur = await db.execute("SELECT balance FROM users WHERE user_id = ?", (callback.from_user.id,))
-        bal = (await cur.fetchone())[0]
-    await callback.message.edit_text(text=f"💼 Your balance: ${bal:.2f}", reply_markup=main_menu_kb())
+        cur = await db.execute("SELECT balance FROM users WHERE user_id = ?", (user_id,))
+        row = await cur.fetchone()
+        if not row:
+            await db.execute(
+                "INSERT INTO users (user_id, username, balance, registered_at) VALUES (?, ?, ?, datetime('now'))",
+                (user_id, username, 0.0)
+            )
+            balance = 0.0
+        else:
+            balance = row[0]
+
+        await db.execute("UPDATE users SET username = ? WHERE user_id = ?", (username, user_id))
+        await db.commit()
+    await message.answer(f"👋 Welcome to <b>{STOREBOT_NAME}</b>, @{username}!\n"
+                         f"💰 <b>Your Balance:</b> ${balance:.2f}\n\n"
+                         f"Use the Buttons Below To Choose an option:", reply_markup=main_menu_kb())
 
 @router.callback_query(F.data == "browse_store")
 async def browse_store(callback: CallbackQuery):
