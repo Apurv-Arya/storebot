@@ -54,7 +54,7 @@ async def list_items(callback: CallbackQuery):
     parts = callback.data.split("_")
     cat_id = int(parts[1])
     page = int(parts[2]) if len(parts) > 2 else 0
-    per_page = 5
+    per_page = 10
     offset = page * per_page
 
     async with aiosqlite.connect(DB_PATH) as db:

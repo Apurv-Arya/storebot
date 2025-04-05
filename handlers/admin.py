@@ -569,8 +569,48 @@ async def start_import(message: types.Message):
         return await message.answer("🔒 Admin only.")
     await message.answer("📂 Send a .csv or .txt file with item list in this format:\n\n`title,price,category,description`", parse_mode="Markdown")
 
-
 @router.message(F.document)
+async def handle_uploaded_file(message: Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state == "awaiting_inventory_file":
+        return await import_inventory_file(message, state)
+    else:
+        return await handle_import_file(message)
+    
+async def import_inventory_file(message: Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state != "awaiting_inventory_file":
+        return  # ignore other uploads not in import mode
+    if not is_admin(message.from_user.id):
+        return
+
+    data = await state.get_data()
+    item_id = data.get("item_id")
+    await state.clear()
+
+    file = message.document
+    if not file.file_name.endswith(".txt") and not file.file_name.endswith(".csv"):
+        return await message.answer("❌ Please send a `.txt` or `.csv` file.")
+
+    path = f"temp_inv_{file.file_id}.txt"
+    await message.bot.download(file, destination=path)
+
+    added = 0
+    with open(path, "r", encoding="utf-8") as f:
+        lines = [line.strip() for line in f if line.strip()]
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        for content in lines:
+            await db.execute("INSERT INTO inventory (item_id, content) VALUES (?, ?)", (item_id, content))
+        await db.execute("UPDATE items SET stock = stock + ? WHERE item_id = ?", (len(lines), item_id))
+        await db.commit()
+
+    import os
+    os.remove(path)
+
+    await message.answer(f"✅ Inventory import complete.\n🧾 Added {len(lines)} units to item ID {item_id}.")
+
+
 async def handle_import_file(message: types.Message):
     if not is_admin(message.from_user.id):
         return
@@ -646,41 +686,6 @@ async def start_inventory_import(message: types.Message, state: FSMContext):
     await state.set_state("awaiting_inventory_file")
     await state.update_data(item_id=item_id)
     await message.answer(f"📥 Now send a `.txt` or `.csv` file with inventory content.\nEach line = 1 inventory unit.", parse_mode="Markdown")
-
-
-@router.message(F.document)
-async def import_inventory_file(message: Message, state: FSMContext):
-    current_state = await state.get_state()
-    if current_state != "awaiting_inventory_file":
-        return  # ignore other uploads not in import mode
-    if not is_admin(message.from_user.id):
-        return
-
-    data = await state.get_data()
-    item_id = data.get("item_id")
-    await state.clear()
-
-    file = message.document
-    if not file.file_name.endswith(".txt") and not file.file_name.endswith(".csv"):
-        return await message.answer("❌ Please send a `.txt` or `.csv` file.")
-
-    path = f"temp_inv_{file.file_id}.txt"
-    await message.bot.download(file, destination=path)
-
-    added = 0
-    with open(path, "r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f if line.strip()]
-
-    async with aiosqlite.connect(DB_PATH) as db:
-        for content in lines:
-            await db.execute("INSERT INTO inventory (item_id, content) VALUES (?, ?)", (item_id, content))
-        await db.execute("UPDATE items SET stock = stock + ? WHERE item_id = ?", (len(lines), item_id))
-        await db.commit()
-
-    import os
-    os.remove(path)
-
-    await message.answer(f"✅ Inventory import complete.\n🧾 Added {len(lines)} units to item ID {item_id}.")
 
 
 @router.message(F.text == "/idlist")

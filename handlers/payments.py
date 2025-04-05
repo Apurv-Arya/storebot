@@ -7,9 +7,21 @@ from aiogram.fsm.state import StatesGroup, State
 from datetime import datetime
 
 
-class PaymentStates(StatesGroup):
-    waiting_for_proof = State()
-
+# Example payment methods (you can move to a config later)
+PAYMENT_METHODS = {
+    "BinancePay": {
+        "title": "<b>🏦 BinancePay</b>",
+        "details": "<b>Name: FusionKeys</b>\n<b>BinancePay ID: 181321229</b>"
+    },
+    "Crypto": {
+        "title": "<b>💸 USDT Address</b>",
+        "details": "<b>USDT Address: 0x77daebf6c1aa13a93e0d25cc90a2ab340f88cec3</b>\n<b>Network: BEP20</b>\n\n<b>USDT Address: TSrN6GsdkNMvFHMjYZUoxoZaddgGTxaY7V</b>\n<b>Network: TRC20</b>"
+    },
+    "paypal": {
+        "title": "<b>💳 PayPal</b>",
+        "details": "<b>PayPal Email: apurvarya19@gmail.com</b>\n\n <b>Send 0.3$ + %10 Extra For Fees (You'll have to cover the fees)</b>"
+    }
+}
 
 router = Router()
 
@@ -35,7 +47,7 @@ async def payment_method_selected(callback: CallbackQuery, state: FSMContext):
     method = callback.data.split("_")[1]
 
     if method == "back":
-        return await callback.message.edit_text("Choose how you want to top up:", reply_markup=topup_method_kb())
+        return await callback.message.edit_text("Choose how you want to top up:", reply_markup=topup_kb())
 
     data = PAYMENT_METHODS.get(method)
     if not data:
@@ -102,18 +114,3 @@ async def handle_payment_proof(message: Message, state: FSMContext):
 async def return_main_menu(callback: CallbackQuery):
     await callback.message.edit_text(text="👋 Main Menu:", reply_markup=main_menu_kb())
 
-# Example payment methods (you can move to a config later)
-PAYMENT_METHODS = {
-    "BinancePay": {
-        "title": "<b>🏦 BinancePay</b>",
-        "details": "<b>Name: FusionKeys</b>\n<b>BinancePay ID: 181321229</b>"
-    },
-    "Crypto": {
-        "title": "<b>💸 USDT Address</b>",
-        "details": "<b>USDT Address: 0x77daebf6c1aa13a93e0d25cc90a2ab340f88cec3</b>\n<b>Network: BEP20</b>\n\n<b>USDT Address: TSrN6GsdkNMvFHMjYZUoxoZaddgGTxaY7V</b>\n<b>Network: TRC20</b>"
-    },
-    "paypal": {
-        "title": "<b>💳 PayPal</b>",
-        "details": "<b>PayPal Email: apurvarya19@gmail.com</b>\n\n <b>Send 0.3$ + %10 Extra For Fees (You'll have to cover the fees)</b>"
-    }
-}
