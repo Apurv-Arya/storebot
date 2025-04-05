@@ -114,6 +114,6 @@ PAYMENT_METHODS = {
     },
     "paypal": {
         "title": "<b>💳 PayPal</b>",
-        "details": "<b>PayPal Email: apurvarya19@gmail.com</b>\n\n <b>Send 0.3$ + %10 Extra For Fees (You'll have to cover the fees)<b>"
+        "details": "<b>PayPal Email: apurvarya19@gmail.com</b>\n\n <b>Send 0.3$ + %10 Extra For Fees (You'll have to cover the fees)</b>"
     }
 }
