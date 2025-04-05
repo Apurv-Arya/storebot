@@ -19,9 +19,9 @@ def topup_kb():
 
 def manual_methods_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🏦 BinancePay", callback_data="method_binance")],
-        [InlineKeyboardButton(text="💸 PayPal", callback_data="method_paypal")],
-        [InlineKeyboardButton(text="🪙 Crypto", callback_data="method_crypto")],
+        [InlineKeyboardButton(text="🏦 BinancePay", callback_data="method_BinancePay")],
+        [InlineKeyboardButton(text="💸 PayPal", callback_data="method_PayPal")],
+        [InlineKeyboardButton(text="🪙 Crypto", callback_data="method_Crypto")],
         [InlineKeyboardButton(text="⬅️ Back", callback_data="main_menu")]
     ])
 

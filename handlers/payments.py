@@ -17,7 +17,7 @@ PAYMENT_METHODS = {
         "title": "<b>💸 USDT Address</b>",
         "details": "<b>USDT Address: 0x77daebf6c1aa13a93e0d25cc90a2ab340f88cec3</b>\n<b>Network: BEP20</b>\n\n<b>USDT Address: TSrN6GsdkNMvFHMjYZUoxoZaddgGTxaY7V</b>\n<b>Network: TRC20</b>"
     },
-    "paypal": {
+    "PayPal": {
         "title": "<b>💳 PayPal</b>",
         "details": "<b>PayPal Email: apurvarya19@gmail.com</b>\n\n <b>Send 0.3$ + %10 Extra For Fees (You'll have to cover the fees)</b>"
     }
