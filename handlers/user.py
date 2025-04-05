@@ -32,7 +32,7 @@ async def start_command(message: Message):
         await db.commit()
 
     msg = (
-        f"👋 Welcome to <b>{STOREBOT_NAME}</b>, @{username}!\n"
+        f"Hey There <b>@{username}!</b> 👋 Welcome to <b>{STOREBOT_NAME}</b>\n"
         f"💰 <b>Your Balance:</b> ${balance:.2f}\n\n"
         "Select an option below to get started 👇"
     )
@@ -233,3 +233,18 @@ async def menu_info(callback: CallbackQuery):
 async def menu_orders(callback: CallbackQuery):
     await callback.message.edit_text("/myorders – View your purchased items.")
 
+# Example payment methods (you can move to a config later)
+PAYMENT_METHODS = {
+    "BinancePay": {
+        "title": "<b>🏦 BinancePay</b>",
+        "details": "<b>Name: FusionKeys</b>\n<b>BinancePay ID: 181321229</b>"
+    },
+    "Crypto": {
+        "title": "<b>💸 USDT Address</b>",
+        "details": "<b>USDT Address: 0x77daebf6c1aa13a93e0d25cc90a2ab340f88cec3</b>\n<b>Network: BEP20</b>\n\n<b>USDT Address: TSrN6GsdkNMvFHMjYZUoxoZaddgGTxaY7V</b>\n<b>Network: TRC20</b>"
+    },
+    "paypal": {
+        "title": "<b>💳 PayPal</b>",
+        "details": "<b>PayPal Email: apurvarya19@gmail.com</b>\n\n <b>Send 0.3$ + %10 Extra For Fees (You'll have to cover the fees)<b>"
+    }
+}

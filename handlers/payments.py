@@ -31,25 +31,35 @@ async def manual_topup(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data.startswith("method_"))
 async def payment_method_selected(callback: CallbackQuery, state: FSMContext):
     method = callback.data.split("_")[1]
-    await state.update_data(method=method)
-    await state.set_state(PaymentProof.waiting_for_proof)
+
+    if method == "back":
+        return await callback.message.edit_text("Choose how you want to top up:", reply_markup=topup_method_kb())
+
+    data = PAYMENT_METHODS.get(method)
+    if not data:
+        return await callback.answer("❌ Unknown payment method.")
+
+    await state.update_data(payment_method=method)
+    await state.set_state(TopUpState.waiting_for_proof)
 
     await callback.message.edit_text(
-        f"📩 You selected <b>{method.title()}</b>.\n\nPlease send your payment proof (receipt/screenshot).",
+        f"{data['title']}\n\n"
+        f"<b>Send payment to:</b>\n<code>{data['details']}</code>\n\n"
+        "📩 After sending payment, reply with a screenshot or transaction ID here.",
         parse_mode="HTML"
     )
  
 @router.message(PaymentProof.waiting_for_proof)
 async def handle_payment_proof(message: Message, state: FSMContext):
-    user_id = message.from_user.id
     data = await state.get_data()
-    method = data.get("method", "Unknown").title()
-    await state.clear()
+    method = data.get("payment_method")
+    user = message.from_user
 
-    caption = (
-        f"🧾 <b>New Payment Proof</b>\n"
-        f"👤 User ID: <code>{user_id}</code>\n"
-        f"💳 Method: <b>{method}</b>\n"
+    text = (
+        f"📥 <b>New Top-Up Request</b>\n"
+        f"👤 User: @{user.username or 'N/A'} | <code>{user.id}</code>\n"
+        f"💳 Method: <b>{method.upper()}</b>\n"
+        f"🕒 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     )
 
     success = False
