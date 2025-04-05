@@ -2,12 +2,9 @@ from aiogram import Router, F, types
 from aiogram.types import Message
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from database.db import DB_PATH
-from keyboards.inline import main_menu_kb, category_menu_kb
+from keyboards.inline import main_menu_kb, category_menu_kb, orders_back_kb
 import aiosqlite, datetime
 from utils.config import STOREBOT_NAME, ADMIN_IDS
-
-
-
 
 router = Router()
 
@@ -182,7 +179,7 @@ async def my_orders(message: types.Message):
     for idx, (inventory_id, title, content) in enumerate(orders, start=1):
         text += f"<b>{idx}.</b> {title}\n🧾 <code>{content[:50]}{'...' if len(content) > 50 else ''}</code>\n\n"
 
-    await message.answer(text, parse_mode="HTML")
+    await message.answer(text, parse_mode="HTML", reply_markup=orders_back_kb())
 
 @router.message(F.text.startswith("/resend"))
 async def resend_item(message: types.Message):
@@ -232,6 +229,27 @@ async def menu_info(callback: CallbackQuery):
 
 @router.callback_query(F.data == "menu_orders")
 async def menu_orders(callback: CallbackQuery):
-    await callback.message.edit_text("/myorders – View your purchased items.")
+    user_id = callback.from_user.id
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("""
+            SELECT i.inventory_id, it.title, i.content
+            FROM inventory i
+            JOIN items it ON it.item_id = i.item_id
+            WHERE i.sold = 1 AND i.sold_to = ?
+            ORDER BY i.inventory_id DESC
+            LIMIT 10
+        """, (user_id,))
+        orders = await cursor.fetchall()
+
+    if not orders:
+        return await callback.message.edit_text("📭 You haven’t purchased any items yet.")
+
+    text = "📦 <b>Your Last 10 Orders</b>:\n\n"
+    for idx, (inventory_id, title, content) in enumerate(orders, start=1):
+        text += f"<b>{idx}.</b> {title}\n🧾 <code>{content[:50]}{'...' if len(content) > 50 else ''}</code>\n\n"
+
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=orders_back_kb())
+
 
 
