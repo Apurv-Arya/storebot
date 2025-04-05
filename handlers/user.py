@@ -194,3 +194,33 @@ async def resend_item(message: types.Message):
     title, content = result
     await message.answer(f"📦 <b>{title}</b> (Resent)\n\n<code>{content}</code>", parse_mode="HTML")
 
+@router.callback_query(F.data == "menu_info")
+async def menu_info(callback: CallbackQuery):
+    user = callback.from_user
+    user_id = user.id
+    username = user.username or "N/A"
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("SELECT balance FROM users WHERE user_id = ?", (user_id,))
+        row = await cursor.fetchone()
+        balance = row[0] if row else 0.0
+
+    text = (
+        f"👤 <b>Your Info</b>\n\n"
+        f"🆔 ID: <code>{user_id}</code>\n"
+        f"🔗 Username: @{username}\n"
+        f"💰 Balance: <b>${balance:.2f}</b>"
+    )
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=main_menu_kb())
+
+@router.callback_query(F.data == "menu_orders")
+async def menu_orders(callback: CallbackQuery):
+    await callback.message.edit_text("/myorders – View your purchased items.")
+
+@router.callback_query(F.data == "menu_topup")
+async def menu_topup(callback: CallbackQuery):
+    await callback.message.edit_text("/topup – Add funds to your wallet.")
+
+@router.callback_query(F.data == "menu_store")
+async def menu_store(callback: CallbackQuery):
+    await callback.message.edit_text("/store – Browse the available products.")
