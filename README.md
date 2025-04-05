@@ -85,6 +85,7 @@ Command	Description
 🔐 Admin Commands
 Command	Description
 /addcat <name>	Add a new category
+/delcat <category_name> Deletes Category with all items and inventory under that category.
 /additem <title> <price> <category> <desc?>	Add product
 /upload <item_id>	Reply to message to upload 1 inventory unit
 /edititem <item_id>	Edit title, price, category, description

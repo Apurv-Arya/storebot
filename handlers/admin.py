@@ -802,3 +802,40 @@ async def analytics_dashboard(message: Message):
     )
 
     await message.answer(text, parse_mode="HTML")
+
+
+@router.message(F.text.startswith("/delcat"))
+async def delete_category(message: Message):
+    if not is_admin(message.from_user.id):
+        return await message.answer("🔒 Admins only.")
+
+    try:
+        _, category_name = message.text.strip().split(maxsplit=1)
+    except:
+        return await message.answer("⚠️ Usage: /delcat <category_name>")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Find category ID
+        cur = await db.execute("SELECT category_id FROM categories WHERE name = ?", (category_name,))
+        row = await cur.fetchone()
+        if not row:
+            return await message.answer("❌ Category not found.")
+
+        cat_id = row[0]
+
+        # Find item IDs under this category
+        cur = await db.execute("SELECT item_id FROM items WHERE category_id = ?", (cat_id,))
+        items = await cur.fetchall()
+        item_ids = [item_id for (item_id,) in items]
+
+        # Delete all inventory tied to those items
+        for item_id in item_ids:
+            await db.execute("DELETE FROM inventory WHERE item_id = ?", (item_id,))
+
+        # Delete the items themselves
+        await db.execute("DELETE FROM items WHERE category_id = ?", (cat_id,))
+        # Delete the category
+        await db.execute("DELETE FROM categories WHERE category_id = ?", (cat_id,))
+        await db.commit()
+
+    await message.answer(f"✅ Category <b>{category_name}</b> and all related items/inventory have been deleted.", parse_mode="HTML")
