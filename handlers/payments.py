@@ -4,6 +4,8 @@ from keyboards.inline import manual_methods_kb, topup_kb, main_menu_kb
 from utils.config import ADMIN_IDS, PROOFS_CHANNEL_ID
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
+from datetime import datetime
+
 
 class PaymentStates(StatesGroup):
     waiting_for_proof = State()
@@ -40,7 +42,7 @@ async def payment_method_selected(callback: CallbackQuery, state: FSMContext):
         return await callback.answer("❌ Unknown payment method.")
 
     await state.update_data(payment_method=method)
-    await state.set_state(TopUpState.waiting_for_proof)
+    await state.set_state(PaymentProof.waiting_for_proof)
 
     await callback.message.edit_text(
         f"{data['title']}\n\n"
@@ -63,6 +65,7 @@ async def handle_payment_proof(message: Message, state: FSMContext):
     )
 
     success = False
+    caption = text
 
     # ✅ Forward to Admins
     for admin_id in ADMIN_IDS:

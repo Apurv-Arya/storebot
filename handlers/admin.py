@@ -359,7 +359,7 @@ async def bulk_remove_start(message: types.Message):
 
     text = "🗑️ <b>Select inventory to remove</b>:\n\n"
     for inv_id, content in items:
-        msg += f"• <code>{content}</code>\n"
+        text += f"• <code>{content}</code>\n"
 
     inv_ids = [inv_id for inv_id, _ in items]
     await message.answer(text, reply_markup=bulk_remove_kb(item_id, inv_ids), parse_mode="HTML")
@@ -653,7 +653,6 @@ async def import_inventory_file(message: Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state != "awaiting_inventory_file":
         return  # ignore other uploads not in import mode
-async def import_inventory_file(message: types.Message, state: FSMContext):
     if not is_admin(message.from_user.id):
         return
 

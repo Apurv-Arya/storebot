@@ -4,7 +4,8 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQu
 from database.db import DB_PATH
 from keyboards.inline import main_menu_kb, category_menu_kb
 import aiosqlite, datetime
-from utils.config import STOREBOT_NAME
+from utils.config import STOREBOT_NAME, ADMIN_IDS
+
 
 
 
