@@ -41,9 +41,11 @@ async def init_db():
             status TEXT,
             created_at TEXT
         )""")
-    try:
-        await db.execute("ALTER TABLE users ADD COLUMN username TEXT;")
-    except aiosqlite.OperationalError:
-    # Column probably already exists
-        pass
-        await db.commit()
+
+        # ✅ Safely try to alter `users` table inside the connection
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN username TEXT;")
+        except aiosqlite.OperationalError:
+            pass  # column already exists
+
+        await db.commit()  # ✅ also inside
